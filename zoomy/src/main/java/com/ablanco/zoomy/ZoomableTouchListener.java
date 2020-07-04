@@ -1,5 +1,8 @@
 package com.ablanco.zoomy;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -107,7 +110,14 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
     @Override
     public boolean onTouch(View v, MotionEvent ev) {
 
-        if (mAnimatingZoomEnding || ev.getPointerCount() > 2) return true;
+        if(ev.getPointerCount() > 2) {
+            mEndingZoomAction.run();
+            return true;
+        }
+
+        if (mAnimatingZoomEnding){
+            return true;
+        }
 
         mScaleGestureDetector.onTouchEvent(ev);
         mGestureDetector.onTouchEvent(ev);
@@ -174,16 +184,37 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
     private void endZoomingView() {
         if (mConfig.isZoomAnimationEnabled()) {
             mAnimatingZoomEnding = true;
-            mZoomableView.animate()
-                    .x(mTargetViewCords.x)
-                    .y(mTargetViewCords.y)
-                    .scaleX(1)
-                    .scaleY(1)
-                    .setInterpolator(mEndZoomingInterpolator)
-                    .withEndAction(mEndingZoomAction).start();
+            ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
+            animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                float xStart = mZoomableView.getX();
+                float yStart = mZoomableView.getY();
+                float scaleStart = mZoomableView.getScaleX();
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    mZoomableView.setX(xStart + animation.getAnimatedFraction() * (mTargetViewCords.x - xStart));
+                    mZoomableView.setY(yStart + animation.getAnimatedFraction() * (mTargetViewCords.y - yStart));
+                    mScaleFactor = scaleStart + animation.getAnimatedFraction() * (1f - scaleStart);
+                    mZoomableView.setScaleX(mScaleFactor);
+                    mZoomableView.setScaleY(mScaleFactor);
+                    obscureDecorView(mScaleFactor >= 1 ? mScaleFactor: 1);
+                }
+            });
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                    mEndingZoomAction.run();
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mEndingZoomAction.run();
+                }
+            });
+            animator.setInterpolator(mEndZoomingInterpolator);
+            animator.start();
         } else mEndingZoomAction.run();
     }
-
 
     private void startZoomingView(View view) {
         mZoomableView = new ImageView(mTarget.getContext());
@@ -252,14 +283,22 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
         mShadow.setBackgroundColor(obscure);
     }
 
+    private int backupUIFlags = View.SYSTEM_UI_FLAG_VISIBLE;
+
     private void hideSystemUI() {
-        mTargetContainer.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                | View.SYSTEM_UI_FLAG_FULLSCREEN); // hide status ba;
+        backupUIFlags = mTargetContainer.getDecorView().getSystemUiVisibility();
+        mTargetContainer.getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                // Hide the nav bar and status bar
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+        );
     }
 
     private void showSystemUI() {
-        mTargetContainer.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+        mTargetContainer.getDecorView().setSystemUiVisibility(backupUIFlags);
     }
 
     private void disableParentTouch(ViewParent view) {
