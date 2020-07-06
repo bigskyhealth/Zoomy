@@ -110,12 +110,12 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
     @Override
     public boolean onTouch(View v, MotionEvent ev) {
 
-        if(ev.getPointerCount() > 2) {
-            mEndingZoomAction.run();
+        if (mAnimatingZoomEnding){
             return true;
         }
-
-        if (mAnimatingZoomEnding){
+        
+        if(ev.getPointerCount() > 2) {
+            mEndingZoomAction.run();
             return true;
         }
 
@@ -182,7 +182,7 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
 
 
     private void endZoomingView() {
-        if (mConfig.isZoomAnimationEnabled()) {
+        if (mConfig.isZoomAnimationEnabled() && mZoomableView != null) {
             mAnimatingZoomEnding = true;
             ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
             animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -192,6 +192,8 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
 
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
+                    if(mZoomableView == null) return;
+
                     mZoomableView.setX(xStart + animation.getAnimatedFraction() * (mTargetViewCords.x - xStart));
                     mZoomableView.setY(yStart + animation.getAnimatedFraction() * (mTargetViewCords.y - yStart));
                     mScaleFactor = scaleStart + animation.getAnimatedFraction() * (1f - scaleStart);
