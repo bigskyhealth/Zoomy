@@ -1,27 +1,62 @@
+apply plugin: 'maven-publish'
 apply plugin: 'com.android.library'
 
-ext {
-    bintrayRepo = 'maven'
-    bintrayName = 'zoomy'
+def githubProperties = new Properties()
+githubProperties.load(new FileInputStream(rootProject.file("github.properties")))
 
-    publishedGroupId = 'com.ablanco.zoomy'
-    libraryName = 'Zoomy'
-    artifact = 'zoomy'
+def getVersionName = { ->
+    return "1.1.1"
+}
 
-    libraryDescription = 'Zoomy is an easy to use pinch-to-zoom Android library Edit'
+def getArtifactId = { ->
+    return "zoomy"
+}
 
-    siteUrl = 'https://github.com/imablanco/Zoomy'
-    gitUrl = 'https://github.com/imablanco/Zoomy.git'
+publishing {
+    publications {
+        zoomy(MavenPublication) {
+            groupId 'com.bigskyhealth.zoomy'
+            artifactId getArtifactId()
+            version getVersionName()
+            artifact("$buildDir/outputs/aar/${getArtifactId()}-release.aar")
 
-    libraryVersion = '1.1.0'
+            pom {
+                name = 'Zoomy'
+                description = 'Zoomy is an easy to use pinch-to-zoom Android library'
+                url = 'https://github.com/bigskyhealth/Zoomy'
 
-    developerId = 'ablanco'
-    developerName = 'Alvaro Blanco'
-    developerEmail = 'alvaro.bl91@gmail.com'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'ablanco'
+                        name = 'Alvaro Blanco'
+                        email = 'alvaro.bl91@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git@github.com:bigskyhealth/Zoomy.git'
+                    developerConnection = 'scm:git:ssh:git@github.com:bigskyhealth/Zoomy.git'
+                    url = 'https://github.com/bigskyhealth/Zoomy'
+                }
+            }
+        }
+    }
 
-    licenseName = 'The Apache Software License, Version 2.0'
-    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-    allLicenses = ["Apache-2.0"]
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/bigskyhealth/Zoomy")
+            credentials {
+                username = githubProperties['gpr.usr'] ?: System.getenv("GPR_USER")
+                password = githubProperties['gpr.key'] ?: System.getenv("GPR_API_KEY")
+            }
+        }
+    }
 }
 
 android {
@@ -49,6 +84,3 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     testImplementation 'junit:junit:4.12'
 }
-
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
