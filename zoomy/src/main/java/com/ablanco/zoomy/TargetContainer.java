@@ -1,6 +1,6 @@
 package com.ablanco.zoomy;
 
-import android.view.ViewGroup;
+import android.view.Window;
 
 /**
  * Created by Álvaro Blanco Cabrero on 01/05/2017.
@@ -9,5 +9,5 @@ import android.view.ViewGroup;
 
 public interface TargetContainer {
 
-    ViewGroup getDecorView();
+    Window getWindow();
 }

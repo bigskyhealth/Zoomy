@@ -3,6 +3,7 @@ package com.ablanco.zoomy;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -113,7 +114,7 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
         if (mAnimatingZoomEnding){
             return true;
         }
-        
+
         if(ev.getPointerCount() > 2) {
             mEndingZoomAction.run();
             return true;
@@ -141,7 +142,7 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
 
             case MotionEvent.ACTION_MOVE:
 
-                if (mState == STATE_ZOOMING) {
+                if (mState == STATE_ZOOMING && mZoomableView != null) {
                     MotionUtils.midPointOfEvent(mCurrentMovementMidPoint, ev);
                     //because our initial pinch could be performed in any of the view edges,
                     //we need to substract this difference and add system bars height
@@ -179,7 +180,6 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
 
         return true;
     }
-
 
     private void endZoomingView() {
         if (mConfig.isZoomAnimationEnabled() && mZoomableView != null) {
@@ -219,9 +219,14 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
     }
 
     private void startZoomingView(View view) {
-        mZoomableView = new ImageView(mTarget.getContext());
+        if (mTargetContainer.getWindow() == null) return;
+
+        Bitmap bitmap = ViewUtils.getBitmapFromView(view);
+        if (mZoomableView == null) {
+            mZoomableView = new ImageView(mTarget.getContext());
+        }
         mZoomableView.setLayoutParams(new ViewGroup.LayoutParams(mTarget.getWidth(), mTarget.getHeight()));
-        mZoomableView.setImageBitmap(ViewUtils.getBitmapFromView(view));
+        mZoomableView.setImageBitmap(bitmap);
 
         //show the view in the same coords
         mTargetViewCords = ViewUtils.getViewAbsoluteCords(view);
@@ -269,12 +274,23 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
         mScaleFactor = 1f;
     }
 
+    private ViewGroup getDecorView() {
+        if (mTargetContainer.getWindow() == null) return null;
+        else return (ViewGroup) mTargetContainer.getWindow().getDecorView();
+    }
+
     private void addToDecorView(View v) {
-        mTargetContainer.getDecorView().addView(v);
+        ViewGroup decor = getDecorView();
+        if (decor != null) {
+            decor.addView(v);
+        }
     }
 
     private void removeFromDecorView(View v) {
-        mTargetContainer.getDecorView().removeView(v);
+        ViewGroup decor = getDecorView();
+        if (decor != null) {
+            decor.removeView(v);
+        }
     }
 
     private void obscureDecorView(float factor) {
@@ -288,19 +304,26 @@ class ZoomableTouchListener implements View.OnTouchListener, ScaleGestureDetecto
     private int backupUIFlags = View.SYSTEM_UI_FLAG_VISIBLE;
 
     private void hideSystemUI() {
-        backupUIFlags = mTargetContainer.getDecorView().getSystemUiVisibility();
-        mTargetContainer.getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                // Hide the nav bar and status bar
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-        );
+        ViewGroup decor = getDecorView();
+        if (decor != null) {
+            backupUIFlags = decor.getSystemUiVisibility();
+
+            decor.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            // Hide the nav bar and status bar
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            );
+        }
     }
 
     private void showSystemUI() {
-        mTargetContainer.getDecorView().setSystemUiVisibility(backupUIFlags);
+        ViewGroup decor = getDecorView();
+        if (decor != null) {
+            decor.setSystemUiVisibility(backupUIFlags);
+        }
     }
 
     private void disableParentTouch(ViewParent view) {

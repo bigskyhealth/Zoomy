@@ -1,7 +1,7 @@
 package com.ablanco.zoomy;
 
 import android.app.Dialog;
-import android.view.ViewGroup;
+import android.view.Window;
 
 /**
  * Created by Álvaro Blanco Cabrero on 01/05/2017.
@@ -17,7 +17,7 @@ public class DialogContainer implements TargetContainer {
     }
 
     @Override
-    public final ViewGroup getDecorView() {
-        return mDialog.getWindow() != null ? (ViewGroup) mDialog.getWindow().getDecorView() : null;
+    public Window getWindow() {
+        return mDialog.getWindow();
     }
 }

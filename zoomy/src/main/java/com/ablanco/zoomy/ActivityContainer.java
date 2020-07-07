@@ -1,7 +1,7 @@
 package com.ablanco.zoomy;
 
 import android.app.Activity;
-import android.view.ViewGroup;
+import android.view.Window;
 
 /**
  * Created by Álvaro Blanco Cabrero on 01/05/2017.
@@ -17,7 +17,7 @@ public class ActivityContainer implements TargetContainer{
     }
 
     @Override
-    public ViewGroup getDecorView() {
-        return (ViewGroup) mActivity.getWindow().getDecorView();
+    public Window getWindow() {
+        return mActivity.getWindow();
     }
 }
